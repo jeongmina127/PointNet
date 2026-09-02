@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader
 MODEL_NAME = "pointnet.pt"
 NUM_EPOCHS = 100
 BATCH_SIZE = 32
+LOSS_WEIGHT = 0.001
+
 LEARNING_RATE = 0.001
 
 PATH = "/mnt/c/Users/Jeongmin Cho/Desktop/ModelNet10/ModelNet10_3_splits"
@@ -42,9 +44,11 @@ engine.train(model = model,
              loss_fn=loss_fn,
              optimizer=optimizer,
              epochs=NUM_EPOCHS,
-             device = device)
+             device = device,
+             loss_weight=LOSS_WEIGHT)
 
 
 utils.save_model(model=model,
                  target_dir="models",
                  model_name =MODEL_NAME)
+
