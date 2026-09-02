@@ -13,7 +13,7 @@ def feature_transform_regularizer(A):
 
 
 def train_step(model : torch.nn.Module,
-               dataloader : torch.utils.data.Dataloader,
+               dataloader : torch.utils.data.DataLoader,
                loss_fn : torch.nn.Module,
                optimizer : torch.optim.Optimizer,
                device : torch.device,
@@ -27,7 +27,10 @@ def train_step(model : torch.nn.Module,
         X = batch["pointcloud"]
         y = batch["category"]
 
-        X, y = X.to(device), y.to(device)
+        #GPT correction        
+        #X = X.transpose(1, 2)
+
+        X, y = X.float().to(device), y.long().to(device)
 
         y_pred, A = model(X)
 
@@ -64,57 +67,70 @@ def valid_step(model : torch.nn.Module,
     with torch.inference_mode():
         for batch_idx, batch in enumerate(dataloader):
 
-        X = batch["pointcloud"]
-        y = batch["category"]
+            X = batch["pointcloud"]
+            y = batch["category"]
 
-        X, y = X.to(device), y.to(device)
+            #GPT correction
+            #X = X.transpose(1, 2)
 
-        val_pred_logits, A = model(X)
+            X, y = X.float().to(device), y.long().to(device)
 
-        classfication_loss= loss_fn(val_pred_logits, y)
-        regularization_loss = feature_transform_regularizer(A)
-        loss = classfication_loss + loss_weight * regularization_loss
+            val_pred_logits, A = model(X)
 
-        val_loss += loss.item()
+            classfication_loss= loss_fn(val_pred_logits, y)
+            regularization_loss = feature_transform_regularizer(A)
+            loss = classfication_loss + loss_weight * regularization_loss
 
-        val_pred_labels = val_pred_logits.argmax(dim = 1)
-        val_acc += ((val_pred_labels == y).sum().item()/len(val_pred_labels)) 
+            val_loss += loss.item()
 
-    val_loss = val_loss / len(dataloader)
-    val_acc = val_acc / len(dataloader)
-    return val_loss, val_acc
+            val_pred_labels = val_pred_logits.argmax(dim = 1)
+            val_acc += ((val_pred_labels == y).sum().item()/len(val_pred_labels)) 
+
+        val_loss = val_loss / len(dataloader)
+        val_acc = val_acc / len(dataloader)
+        return val_loss, val_acc
 
 
 def train(model: torch.nn.Module,
           train_dataloader: torch.utils.data.DataLoader,
-          test_dataloader : torch.utils.data.DataLoader,
           valid_dataloader : torch.utils.data.DataLoader,
           optimizer: torch.optim.Optimizer,
           loss_fn : torch.nn.Module,
           epochs: int,
-          device : torch.device) -> Dict[str, List]:
+          device : torch.device,
+          loss_weight : float) -> Dict[str, List]:
+    
     results = {"train_loss":[],
                "train_acc":[],
                "val_loss":[],
                "val_acc":[]}
+    
+    schedular = torch.optim.lr_scheduler.StepLR(
+        optimizer,
+        step_size=20,
+        gamma=0.5
+    )
 
     for epoch in tqdm(range(epochs)):
         train_loss, train_acc = train_step(model = model,
                                            dataloader = train_dataloader,
                                            loss_fn = loss_fn,
                                            optimizer = optimizer,
-                                           devcie = device)
+                                           device = device,
+                                           loss_weight=loss_weight)
         val_loss, val_acc = valid_step(model = model,
                                        dataloader = valid_dataloader,
                                        loss_fn = loss_fn,
-                                       device = device)
-
+                                       device = device,
+                                       loss_weight=loss_weight)
+        schedular.step()
+        
         print(
             f"Epoch: {epoch+1} |"
             f"train_loss: {train_loss:.4f} |"
             f"train_acc: {train_acc:.4f} |"
             f"val_loss: {val_loss:.4f} |"
-            f"val_acc": {val_acc:.4f}
+            f"val_acc: {val_acc:.4f}"
         )
 
         results["train_loss"].append(train_loss)
