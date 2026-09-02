@@ -7,17 +7,8 @@ from pathlib import Path
 import numpy as np
 import random, math
 
-# train_transforms = transforms.Compose([
-#                   V PointSampler(1024), <- CAD to pointcloud
-#                   V Normalize(),        <- make the size 1
-#                   V RandomRotation_z(), <- z axie rotation
-#                   V RandomNoise(),      <- give random noise
-#                   V ToTensor()
-#                     ])
-
-# --> train_ds = (train_root, train_transforms)
-# --> test_ds = (test_root, test_transforms)
 PATH = Path("/mnt/c/Users/Jeongmin Cho/Desktop/ModelNet10/ModelNet10_3_splits")
+NUM_WORKERS = os.cpu_count()
 
 folders = [dir for dir in sorted(os.listdir(PATH)) if os.path.isdir(PATH/dir)]
 classes = {folder : i for i, folder in enumerate(folders)}
@@ -89,8 +80,8 @@ def default_transforms():
 class PointcloudData(Dataset):
 
     def __init__(self, root_dir, valid = False, folder = 'train', transform = default_transforms()):
-        self.root_dir = root_dir
-        folders = [dir for dir in sorted(os.listdir(root_dir)) if os.path.isdir(root_dir/dir)]
+        self.root_dir = Path(root_dir)
+        folders = [dir for dir in sorted(os.listdir(self.root_dir)) if os.path.isdir(self.root_dir/dir)]
         self.classes = {folder : i for i, folder in enumerate(folders)}
         self.transforms = transform if not valid else default_transforms()
         self.valid = valid
@@ -131,13 +122,15 @@ def train_transforms():
         RandomNoise(),
         ToTensor()])
 
-train_ds =  PointcloudData(root_dir=PATH,transform = train_transforms())
-valid_ds = PointcloudData(root_dir=PATH,folder='val', transform= default_transforms(), valid= False)
-test_ds = PointcloudData(root_dir=PATH, valid = False, folder = 'test',transform=default_transforms())
 
-print('Train dataset size: ', len(train_ds))
-print('Valid dataset size: ', len(valid_ds))
-print('Test dataset size: ', len(test_ds))
-print('Number of classes: ', len(train_ds.classes))
-print(type(train_ds))
-print('Sample pointcloud shape: ', train_ds[0]['pointcloud'].size())
+    
+# train_ds =  PointcloudData(root_dir=PATH,transform = train_transforms())
+# valid_ds = PointcloudData(root_dir=PATH,folder='val', transform= default_transforms(), valid= False)
+# test_ds = PointcloudData(root_dir=PATH, valid = False, folder = 'test',transform=default_transforms())
+
+# print('Train dataset size: ', len(train_ds))
+# print('Valid dataset size: ', len(valid_ds))
+# print('Test dataset size: ', len(test_ds))
+# print('Number of classes: ', len(train_ds.classes))
+# print(type(train_ds))
+# print('Sample pointcloud shape: ', train_ds[0]['pointcloud'].size())
