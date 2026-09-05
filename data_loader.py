@@ -7,12 +7,6 @@ from pathlib import Path
 import numpy as np
 import random, math
 
-PATH = Path("/mnt/c/Users/Jeongmin Cho/Desktop/ModelNet10/ModelNet10_3_splits")
-NUM_WORKERS = os.cpu_count()
-
-folders = [dir for dir in sorted(os.listdir(PATH)) if os.path.isdir(PATH/dir)]
-classes = {folder : i for i, folder in enumerate(folders)}
-
 
 class PointSampler:
     """
@@ -28,15 +22,24 @@ class PointSampler:
         return sampled_points
 
     
-class Normalize:
+# class Normalize:
+#     def __call__(self, pointcloud):
+#         centroid = np.mean(pointcloud, axis = 0)
+#         norm_points = pointcloud - centroid
+#         furthest_distance = np.max(np.sqrt(np.sum(abs(pointcloud)**2, axis = -1)))
+#         norm_points /= furthest_distance
+#
+#         return norm_points
+
+
+class Normalize(object):
     def __call__(self, pointcloud):
-        centroid = np.mean(pointcloud, axis = 0)
-        norm_points = pointcloud - centroid
-        furthest_distance = np.max(np.sqrt(np.sum(abs(pointcloud)**2, axis = -1)))
-        norm_points /= furthest_distance
+        assert len(pointcloud.shape) == 2
 
-        return norm_points
+        norm_pointcloud = pointcloud - np.mean(pointcloud, axis=0)
+        norm_pointcloud /= np.max(np.linalg.norm(norm_pointcloud, axis=1))
 
+        return norm_pointcloud
 
 class RandRotation_z:
     def __call__(self, pointcloud):
