@@ -37,7 +37,12 @@ class Normalize(object):
         assert len(pointcloud.shape) == 2
 
         norm_pointcloud = pointcloud - np.mean(pointcloud, axis=0)
-        norm_pointcloud /= np.max(np.linalg.norm(norm_pointcloud, axis=1))
+        scale = np.max(np.linalg.norm(norm_pointcloud, axis=1))
+
+        if not np.isfinite(scale) or scale == 0 :
+            raise ValueError("Cannot normalize a degenerate point cloud")
+
+        norm_pointcloud /= scale
 
         return norm_pointcloud
 
