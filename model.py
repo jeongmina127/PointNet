@@ -8,45 +8,64 @@ class PointNet(nn.Module):
         super().__init__()
         self.tnet1 = TNet1()
         self.tnet2 = TNet2()
+
         self.f0 = nn.Conv1d(3,64,1)
+        self.bn_f0 = nn.BatchNorm1d(64)
+
         self.f1 = nn.Conv1d(64,64,1)
+        self.bn_f1 = nn.BatchNorm1d(64)
 
         self.f2 = nn.Conv1d(64, 128, 1)
+        self.bn_f2 = nn.BatchNorm1d(128)
+
         self.f3 = nn.Conv1d(128,1024,1)
+        self.bn_f3 = nn.BatchNorm1d(1024)
 
         self.f4 = nn.Linear(1024,512)
+        self.bn_f4 = nn.BatchNorm1d(512)
+
         self.f5 = nn.Linear(512,256)
+        self.bn_f5 = nn.BatchNorm1d(256)
 
         self.dropout = nn.Dropout(p=0.3)
-
+        self.relu = nn.ReLU()
         self.f6 = nn.Linear(256,10)
 
     def forward(self,x):
         A = self.tnet1(x)
-        #print("noting:", x.shape)
         x = torch.bmm(A, x)
-        #print("after T1:", x.shape)
+
         x = self.f0(x)
-        #print("f0:", x.shape)
+        x = self.bn_f0(x)
+        x = self.relu(x)
+
         x = self.f1(x)
-        #print("f1:", x.shape)
+        x = self.bn_f1(x)
+        x = self.relu(x)
+
         A = self.tnet2(x)
         x = torch.bmm(A, x)
-        #print("after T2:", x.shape)
+
         x = self.f2(x)
-        #print("f2:", x.shape)
+        x = self.bn_f2(x)
+        x = self.relu(x)
+
         x = self.f3(x)
-        #print("f3:", x.shape)
+        x = self.bn_f3(x)
+        x = self.relu(x)
+
         x = torch.max(x, dim = 2).values
-        #print("torch.max:", x.shape)
+
         x = self.f4(x)
-        #print("f4:", x.shape)
+        x = self.bn_f4(x)
+        x = self.relu(x)
+
         x = self.f5(x)
-        #print("f5:", x.shape)
+        x = self.bn_f5(x)
+        x = self.relu(x)
+
         x = self.dropout(x)
-        #print("after dropout:", x.shape)
         x = self.f6(x)
-        #print("f6:", x.shape)
 
         return x,A
 
@@ -72,6 +91,10 @@ class TNet1(nn.Module):
             self.f5 = nn.Linear(512,256)
             self.f6 = nn.Linear(256, 9)
 
+            # GPT correction
+            nn.init.zeros_(self.f6.weight)
+            nn.init.zeros_(self.f6.bias)
+
 
         def forward(self,x):
             x = self.f1(x)
@@ -94,6 +117,10 @@ class TNet1(nn.Module):
 
             x = self.f5(x)
             x = self.f6(x)
+
+            # GPT correction
+            identity = torch.eye(3, device=x.device, dtype=x.dtype).reshape(1, 9)
+            x = x + identity
 
             x = x.reshape(-1, 3, 3)
 
@@ -119,6 +146,10 @@ class TNet2(nn.Module):
             self.f5 = nn.Linear(512,256)
             self.f6 = nn.Linear(256, 4096)
 
+            # GPT correction
+            nn.init.zeros_(self.f6.weight)
+            nn.init.zeros_(self.f6.bias)
+
 
         def forward(self,x):
             x = self.f1(x)
@@ -141,6 +172,10 @@ class TNet2(nn.Module):
 
             x = self.f5(x)
             x = self.f6(x)
+
+            # GPT correction
+            identity = torch.eye(64, device=x.device, dtype=x.dtype).reshape(1, 4096)
+            x = x + identity
 
             x = x.reshape(-1, 64, 64)
 
