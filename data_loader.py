@@ -12,12 +12,13 @@ class PointSampler:
     """
     CAD -> pointcloud
     """
-    def __init__(self, output_size):
+    def __init__(self, output_size, seed=None):
         assert isinstance(output_size, int)
         self.output_size = output_size
+        self.seed = seed
 
     def __call__(self, mesh):
-        sampled_points, _ = trimesh.sample.sample_surface(mesh = mesh,count= self.output_size)
+        sampled_points, _ = trimesh.sample.sample_surface(mesh = mesh,count= self.output_size,seed=self.seed)
 
         return sampled_points
 
@@ -63,7 +64,7 @@ class RandomNoise:
     def __call__(self, pointcloud):
         assert len(pointcloud.shape) == 2
 
-        noise_rate = 0.2
+        noise_rate = 0.02
         # numpy.random.normal(loc=0.0, scale=1.0, size=None)
         noise = np.random.normal(0, noise_rate, pointcloud.shape)
         noise_pointcloud = pointcloud + noise
@@ -79,7 +80,7 @@ class ToTensor:
 
 def default_transforms():
     return transforms.Compose([
-        PointSampler(1024),
+        PointSampler(1024,seed=42),
         Normalize(),
         ToTensor()
         ])
